@@ -26,28 +26,44 @@ router.post("/create", async (req, res, next) => {
     openID,
     gender
   ).catch(error => {
-    console.log("valiData Error:", error);
+    console.error("valiData Error:", error);
+    res.send({ code: 400, data: error });
   });
   user && saveUserInfo(user, res);
 });
 
-router.post("/login", function(req, res, next) {
-  // console.log(req);
-  var user = new User({
-    username: 111,
-    password: "H.Exris19970818",
-    phone: "15627692098",
-    openID: "chzidsnfkioi_asdpppd",
-    gender: 0
-  });
-  user.save(err => {
-    err && console.log(err);
-    if (err) {
-      res.send("fail");
-    } else {
-      res.send("success");
+router.post("/login", async (req, res, next) => {
+  let { username, password } = req.body;
+
+  // 获取用户
+  let user = await findUserByName(username.toLowerCase(), username).catch(
+    error => {
+      res.send({ code: 400, data: `查找用户名错误，${error}` });
+      return;
     }
-  });
+  );
+
+  if (user.result) {
+    if (user.result.password === password) {
+      res.send({
+        code: 200,
+        msg: "登录成功"
+      });
+      return;
+    } else {
+      res.send({
+        code: 400,
+        msg: "用户名或密码错误，请重试！"
+      });
+      return;
+    }
+  } else {
+    res.send({
+      code: 400,
+      msg: "用户名或密码错误，请重试！"
+    });
+    return;
+  }
 });
 
 // Common Methods
@@ -71,14 +87,14 @@ async function valiData(res, username, password, phone, openID, gender) {
   }
 
   // 判断用户名是否存在
-  let illegalName = await checkUserName(
+  let illegalName = await findUserByName(
     username.toLowerCase(),
     username
   ).catch(error => {
     res.send({ code: 400, data: `验证用户名错误，${error}` });
     return;
   });
-  
+
   // 用户名已存在抛出错误
   if (illegalName.result) {
     res.send({ code: 400, msg: `用户名：${illegalName.rawName}，已存在！` });
@@ -110,11 +126,16 @@ async function valiData(res, username, password, phone, openID, gender) {
   });
 
   // //验证通过返回User实例
-  return user
+  return user;
 }
 
-// 用户名查重
-function checkUserName(username, rawName) {
+/**
+ * 通过用户名查找用户
+ * @constructor
+ * @param {String} username - The username before toLowerCase()
+ * @param {String} raw - The username
+ */
+function findUserByName(username, rawName) {
   return new Promise((resolve, reject) => {
     User.findOne({ username }, (error, result) => {
       if (error) {
