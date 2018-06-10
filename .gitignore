@@ -9,6 +9,7 @@ test/e2e/reports
 selenium-debug.log
 test/*
 build/
+package-lock.json
 
 # Editor directories and files
 .idea
