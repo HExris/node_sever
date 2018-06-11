@@ -1,6 +1,9 @@
 var express = require("express");
 var router = express.Router();
+var http = require("axios");
 
+// 引入配置文件
+var config = require("../config/config");
 // 引入模型
 var User = require("../models/user"); // User Model
 
@@ -28,42 +31,44 @@ router.post("/create", async (req, res, next) => {
   ).catch(error => {
     console.error("valiData Error:", error);
     res.send({ code: 400, data: error });
+    return
   });
   user && saveUserInfo(user, res);
 });
 
+/**
+ * Get openID
+ * @constructor
+ * @param {Object} req - Including The Information of the wechat user.
+ */
+
 router.post("/login", async (req, res, next) => {
-  let { username, password } = req.body;
+  let { code,userInfo } = req.body;
 
-  // 获取用户
-  let user = await findUserByName(username.toLowerCase(), username).catch(
-    error => {
-      res.send({ code: 400, data: `查找用户名错误，${error}` });
-      return;
+  const appid = config.appId
+  const appSecret = config.appSecret
+
+  console.log(userInfo);
+  
+  http({
+    url: 'https://api.weixin.qq.com/sns/jscode2session',
+    method: 'GET',
+    params: {
+      appid: appid,
+      secret: appSecret,
+      js_code: code,
+      grant_type: 'authorization_code'
     }
-  );
-
-  if (user.result) {
-    if (user.result.password === password) {
-      res.send({
-        code: 200,
-        msg: "登录成功"
-      });
-      return;
+  }).then(result => {
+    result = result.data;
+    if (result.errcode || !result.openid || !result.session_key) {
+      throw new Error(`${ERRORS.ERR_GET_SESSION_KEY}\n${JSON.stringify(result)}`)
     } else {
-      res.send({
-        code: 400,
-        msg: "用户名或密码错误，请重试！"
-      });
-      return;
+      res.send({ code: 200, msg: "获取openID成功", data: result.openid });
+      return
     }
-  } else {
-    res.send({
-      code: 400,
-      msg: "用户名或密码错误，请重试！"
-    });
-    return;
-  }
+  })
+
 });
 
 // Common Methods
@@ -133,7 +138,7 @@ async function valiData(res, username, password, phone, openID, gender) {
  * 通过用户名查找用户
  * @constructor
  * @param {String} username - The username before toLowerCase()
- * @param {String} raw - The username
+ * @param {String} rawName - The username
  */
 function findUserByName(username, rawName) {
   return new Promise((resolve, reject) => {
@@ -145,10 +150,13 @@ function findUserByName(username, rawName) {
       }
     });
   });
-  // return User.findOne({ username });
 }
 
-// 手机号查重
+/**
+ * 手机号查重
+ * @constructor
+ * @param {Number} phone - Phone of the user
+ */
 function checkPhone(phone) {
   return new Promise((resolve, reject) => {
     User.findOne({ phone }, (error, result) => {
