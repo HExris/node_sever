@@ -4,8 +4,13 @@ var Schema = mongoose.Schema;
 
 var userSchema = new Schema(
   {
-    username: String,
+    nickName: String,
     password: String,
+    country: String,
+    province: String,
+    city: String,
+    language: String,
+    avatar: String,
     phone: Number,
     openID: String,
     gender: Number,

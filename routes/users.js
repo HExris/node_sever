@@ -1,6 +1,7 @@
 var express = require("express");
 var router = express.Router();
 var http = require("axios");
+var day = require("dayjs");
 
 // 引入配置文件
 var config = require("../config/config");
@@ -31,7 +32,7 @@ router.post("/create", async (req, res, next) => {
   ).catch(error => {
     console.error("valiData Error:", error);
     res.send({ code: 400, data: error });
-    return
+    return;
   });
   user && saveUserInfo(user, res);
 });
@@ -43,32 +44,58 @@ router.post("/create", async (req, res, next) => {
  */
 
 router.post("/login", async (req, res, next) => {
-  let { code,userInfo } = req.body;
+  let { code, userInfo } = req.body;
 
-  const appid = config.appId
-  const appSecret = config.appSecret
+  const appid = config.appId;
+  const appSecret = config.appSecret;
 
-  console.log(userInfo);
-  
   http({
-    url: 'https://api.weixin.qq.com/sns/jscode2session',
-    method: 'GET',
+    url: "https://api.weixin.qq.com/sns/jscode2session",
+    method: "GET",
     params: {
       appid: appid,
       secret: appSecret,
       js_code: code,
-      grant_type: 'authorization_code'
+      grant_type: "authorization_code"
     }
   }).then(result => {
     result = result.data;
     if (result.errcode || !result.openid || !result.session_key) {
-      throw new Error(`${ERRORS.ERR_GET_SESSION_KEY}\n${JSON.stringify(result)}`)
+      throw new Error(
+        `${ERRORS.ERR_GET_SESSION_KEY}\n${JSON.stringify(result)}`
+      );
     } else {
-      res.send({ code: 200, msg: "获取openID成功", data: result.openid });
-      return
-    }
-  })
+      let {
+        nickName,
+        country,
+        province,
+        city,
+        language,
+        avatarUrl,
+        gender
+      } = userInfo;
+      let openID = result.openid;
 
+      var user = {
+        nickName,
+        country,
+        province,
+        city,
+        language,
+        avatar: avatarUrl,
+        phone: null,
+        openID,
+        gender,
+        createTime: new Date().getTime()
+      };
+      CreateUserByOpenID(openID, user).catch(err => {
+        console.error(err);
+      });
+
+      res.send({ code: 200, msg: "获取openID成功", data: result.openid });
+      return;
+    }
+  });
 });
 
 // Common Methods
@@ -149,6 +176,31 @@ function findUserByName(username, rawName) {
         resolve({ result, rawName });
       }
     });
+  });
+}
+
+/**
+ * 通过openID查找用户
+ * @constructor
+ * @param {String} openID - The openID of user
+ */
+function CreateUserByOpenID(openID, user) {
+  return new Promise((resolve, reject) => {
+    User.updateOne(
+      { openID },
+      { $set: user },
+      {
+        upsert: true,
+        multi: false
+      },
+      (error, result) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve(result);
+        }
+      }
+    );
   });
 }
 
