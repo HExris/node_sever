@@ -76,18 +76,7 @@ router.post("/login", async (req, res, next) => {
       } = userInfo;
       let openID = result.openid;
 
-      var user = {
-        nickName,
-        country,
-        province,
-        city,
-        language,
-        avatar: avatarUrl,
-        phone: null,
-        openID,
-        gender,
-        createTime: new Date().getTime()
-      };
+      var user = { nickName, country, province, city, language, avatar: avatarUrl, phone: null, openID, gender, createTime: day().format("YYYY-MM-DD HH:mm:ss") };
       CreateUserByOpenID(openID, user).catch(err => {
         console.error(err);
       });
@@ -180,7 +169,7 @@ function findUserByName(username, rawName) {
 }
 
 /**
- * 通过openID查找用户
+ * 通过openID创建并更新用户
  * @constructor
  * @param {String} openID - The openID of user
  */

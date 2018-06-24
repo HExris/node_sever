@@ -14,7 +14,7 @@ var userSchema = new Schema(
     phone: Number,
     openID: String,
     gender: Number,
-    createTime: Number
+    createTime: String
   },
   { _id: true }
 );
