@@ -25,3 +25,5 @@ router.post("/location/save", async (req, res, next) => {
     });
     user && saveUserInfo(user, res);
 });
+
+module.exports = router;
