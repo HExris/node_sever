@@ -15,6 +15,7 @@ router.post("/save", async (req, res, next) => {
   console.log("Save Location");
   const { openID, latitude, longitude, desc } = req.body;
 
+<<<<<<< HEAD
   // 
   // 保存数据
   var list = await getUserLocationList(res).catch(error => {
@@ -34,3 +35,21 @@ function getUserLocationList(params) {
 function insertList(params) {
 
 }
+=======
+    // 验证数据
+    var user = await valiData(
+        res,
+        username,
+        password,
+        phone,
+        openID,
+        gender
+    ).catch(error => {
+        console.error("valiData Error:", error);
+        res.send({ code: 400, data: error });
+    });
+    user && saveUserInfo(user, res);
+});
+
+module.exports = router;
+>>>>>>> 423f0c569d4aec5e94e8465612777fc18613692c
